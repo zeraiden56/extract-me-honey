@@ -1,0 +1,22 @@
+{
+  "honey": 1533.018880368532,
+  "run_honey": 299.01888036853154,
+  "lifetime_honey": 299.01888036853154,
+  "hives": 4,
+  "bee_level": 3,
+  "queen_level": 0,
+  "extractor_level": 0,
+  "gloves_level": 0,
+  "cart_level": 0,
+  "pollen": 0,
+  "prestige_count": 0,
+  "perks": {
+    "steady_hands": 0,
+    "royal_jelly": 0,
+    "hive_mind": 0,
+    "golden_frames": 0,
+    "second_wind": 0,
+    "legacy_apiary": 0
+  },
+  "saved_at": 1791107464.060257
+}
