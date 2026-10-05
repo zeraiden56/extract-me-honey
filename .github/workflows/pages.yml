@@ -20,20 +20,9 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      # ------------------------------------------------------------
-      # 1. Baixar o projeto
-      # ------------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v6
 
-      # ------------------------------------------------------------
-      # 2. Instalar dependências necessárias para Ruby2D
-      #
-      # IMPORTANTE:
-      # Isso precisa vir ANTES do ruby/setup-ruby com
-      # bundler-cache: true, porque bundler-cache executa
-      # bundle install automaticamente.
-      # ------------------------------------------------------------
       - name: Instalar dependências de compilação
         run: |
           sudo apt-get update
@@ -60,43 +49,28 @@ jobs:
             libpulse-dev \
             libudev-dev
 
-      # ------------------------------------------------------------
-      # 3. Ruby
-      #
-      # Ruby 3.4 é uma opção mais conservadora para Ruby2D
-      # do que Ruby 4.0 neste momento.
-      #
-      # O ruby/setup-ruby lê "BUNDLED WITH" do Gemfile.lock.
-      # ------------------------------------------------------------
       - name: Configurar Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.4'
+          ruby-version: '4.0'
           bundler-cache: true
-          cache-version: 1
+          cache-version: 2
 
-      # ------------------------------------------------------------
-      # 4. Diagnóstico
-      # ------------------------------------------------------------
       - name: Mostrar versões
         run: |
+          echo "Ruby:"
           ruby --version
+
+          echo "Bundler:"
           bundle --version
+
+          echo "Gems:"
           bundle list
 
-      # ------------------------------------------------------------
-      # 5. Preparar Ruby2D
-      #
-      # ruby2d setup compila as dependências usadas pelo Ruby2D,
-      # incluindo SDL e mruby.
-      # ------------------------------------------------------------
       - name: Preparar Ruby2D e mruby
         run: |
-          bundle exec ruby2d setup
+          bundle exec ruby2d setup --yes
 
-      # ------------------------------------------------------------
-      # 6. Teste básico
-      # ------------------------------------------------------------
       - name: Testar o jogo
         env:
           SDL_AUDIODRIVER: dummy
@@ -104,9 +78,6 @@ jobs:
         run: |
           bundle exec ruby main.rb --smoke
 
-      # ------------------------------------------------------------
-      # 7. Instalar Emscripten
-      # ------------------------------------------------------------
       - name: Instalar Emscripten
         run: |
           git clone \
@@ -118,41 +89,34 @@ jobs:
           "$RUNNER_TEMP/emsdk/emsdk" install 6.0.11
           "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.11
 
-      # ------------------------------------------------------------
-      # 8. Compilar versão WebAssembly
-      # ------------------------------------------------------------
       - name: Compilar jogo para WebAssembly
         run: |
           source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
 
+          echo "Versão do Emscripten:"
           emcc --version
 
           bundle exec ruby scripts/build_web.rb
 
-      # ------------------------------------------------------------
-      # 9. Verificar saída
-      # ------------------------------------------------------------
       - name: Verificar build
         run: |
-          echo "Conteúdo de build/web:"
-          find build/web -maxdepth 2 -type f -print
+          echo "Arquivos gerados:"
+          find build/web -maxdepth 3 -type f -print
+
+          if [ ! -d build/web ]; then
+            echo "ERRO: a pasta build/web não foi criada."
+            exit 1
+          fi
 
           if [ ! -f build/web/index.html ]; then
             echo "ERRO: build/web/index.html não foi criado."
             exit 1
           fi
 
-      # ------------------------------------------------------------
-      # 10. Preparar artefato do GitHub Pages
-      # ------------------------------------------------------------
       - name: Upload do GitHub Pages
         uses: actions/upload-pages-artifact@v4
         with:
           path: build/web
-
-  # ==============================================================
-  # DEPLOY
-  # ==============================================================
 
   deploy:
     needs: build
