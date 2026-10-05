@@ -54,17 +54,20 @@ jobs:
         with:
           ruby-version: '4.0'
           bundler-cache: true
-          cache-version: 2
+          cache-version: 3
 
       - name: Mostrar versões
         run: |
-          echo "Ruby:"
+          echo "=== Ruby ==="
           ruby --version
 
-          echo "Bundler:"
+          echo "=== Bundler ==="
           bundle --version
 
-          echo "Gems:"
+          echo "=== Rake ==="
+          bundle exec rake --version
+
+          echo "=== Gems instaladas ==="
           bundle list
 
       - name: Preparar Ruby2D e mruby
@@ -93,25 +96,29 @@ jobs:
         run: |
           source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
 
-          echo "Versão do Emscripten:"
+          echo "=== Emscripten ==="
           emcc --version
 
           bundle exec ruby scripts/build_web.rb
 
       - name: Verificar build
         run: |
-          echo "Arquivos gerados:"
-          find build/web -maxdepth 3 -type f -print
+          echo "=== Verificando pasta build/web ==="
 
           if [ ! -d build/web ]; then
             echo "ERRO: a pasta build/web não foi criada."
             exit 1
           fi
 
+          echo "=== Arquivos gerados ==="
+          find build/web -maxdepth 3 -type f -print
+
           if [ ! -f build/web/index.html ]; then
             echo "ERRO: build/web/index.html não foi criado."
             exit 1
           fi
+
+          echo "Build web criado com sucesso."
 
       - name: Upload do GitHub Pages
         uses: actions/upload-pages-artifact@v4
