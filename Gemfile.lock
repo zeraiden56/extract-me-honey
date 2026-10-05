@@ -12,9 +12,5 @@ DEPENDENCIES
   json (~> 2.0)
   ruby2d (~> 1.0)
 
-CHECKSUMS
-  json (2.19.9)
-  ruby2d (1.0.0)
-
 BUNDLED WITH
   4.0.20
