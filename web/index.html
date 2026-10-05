@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#382514">
+  <title>Extract Me Honey — Apiário Vivo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #241a12; color: #fff3cf; font: 15px system-ui, sans-serif; }
+    main { max-width: 1672px; margin: auto; padding: 12px; }
+    .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    h1 { font-size: 18px; margin: 0 auto 0 0; color: #ffd767; }
+    button { border: 1px solid #ac8450; border-radius: 6px; background: #53361f; color: #fff3cf; padding: 9px 14px; font: inherit; cursor: pointer; }
+    button:hover { background: #775030; }
+    button:disabled { opacity: .5; cursor: default; }
+    button:focus-visible, canvas:focus-visible { outline: 2px solid #ffd767; outline-offset: 3px; }
+    .stage { position: relative; background: #111; border-radius: 10px; overflow: hidden; }
+    canvas { display: block; width: 100%; height: auto; aspect-ratio: 1280 / 720; touch-action: none; }
+    .stage:fullscreen { display: grid; place-items: center; border-radius: 0; }
+    .stage:fullscreen canvas { width: min(100vw, 177.7778vh); height: auto; }
+    #loading { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 24px; background: #382514; }
+    #loading[hidden] { display: none; }
+    #loading strong { font-size: 24px; color: #ffd767; }
+    footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: #dabc8e; font-size: 13px; line-height: 1.6; padding: 12px 2px; }
+    footer p { margin: 0; }
+    @media (max-width: 600px) { main { padding: 6px; } h1 { width: 100%; } button { font-size: 13px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="toolbar">
+      <h1>Extract Me Honey · Apiário Vivo</h1>
+      <button id="download-save" type="button" disabled>Baixar save</button>
+      <button id="fullscreen" type="button">Tela cheia</button>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="canvas" width="1280" height="720" tabindex="0" aria-label="Apiário Vivo: clique no campo para coletar mel; compre melhorias na Loja e no Legado."></canvas>
+      <div id="loading" role="status"><strong>Preparando o apiário…</strong><p id="load-status">Carregando o jogo e as ilustrações.</p></div>
+    </div>
+    <footer>
+      <p>Clique no campo para produzir mel e ganhar ritmo. Nas colmeias, o toque rende 50% a mais.<br>Em telas pequenas, jogue na horizontal ou use tela cheia.</p>
+      <p id="save-status" role="status">Seu progresso fica salvo neste navegador.</p>
+    </footer>
+    <noscript>Ative o JavaScript do navegador para jogar.</noscript>
+  </main>
+  <script>
+    function showError(message) {
+      document.documentElement.dataset.failed = 'true';
+      document.getElementById('loading').hidden = false;
+      document.getElementById('loading').querySelector('strong').textContent = 'Não foi possível iniciar o jogo';
+      document.getElementById('load-status').textContent = 'Recarregue a página para tentar novamente.';
+      console.error(message);
+    }
+    var Module = {
+      canvas: document.getElementById('canvas'),
+      printErr: function (message) { console.error(message); if (/Error|exception|abort/i.test(message)) showError(message); },
+      onAbort: showError,
+      monitorRunDependencies: function (remaining) {
+        document.getElementById('load-status').textContent = remaining ? 'Carregando o jogo e as ilustrações…' : 'Abrindo o apiário…';
+      }
+    };
+    Module.canvas.addEventListener('contextmenu', function (event) { event.preventDefault(); });
+    document.getElementById('fullscreen').addEventListener('click', async function () {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.getElementById('stage').requestFullscreen();
+      } catch (error) { document.getElementById('save-status').textContent = 'Este navegador não permite tela cheia.'; }
+    });
+    document.getElementById('download-save').addEventListener('click', function () {
+      try {
+        var text = Module.honeyReadSave();
+        var url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = 'extract-me-honey-save.json';
+        link.click();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      } catch (error) { document.getElementById('save-status').textContent = 'O save ainda não está pronto. Tente novamente em alguns segundos.'; }
+    });
+  </script>
+  <script async src="app.js" onerror="showError('Falha ao carregar app.js')"></script>
+</body>
+</html>

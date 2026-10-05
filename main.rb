@@ -1,17 +1,21 @@
 # frozen_string_literal: true
 
 require 'ruby2d'
-require 'json'
-require 'fileutils'
+unless Ruby2D.web?
+  require 'json'
+  require 'fileutils'
+end
+require_relative 'lib/honey_runtime'
 require_relative 'lib/auto_clicker'
 
 WIDTH = 1672
 HEIGHT = 941
 FIELD_RIGHT = 1168
 TOP_HUD = 110
-DEMO_MODE = ARGV.include?('--demo')
-SMOKE_MODE = ARGV.include?('--smoke')
-SAVE_PATH = File.expand_path(ENV.fetch('HONEY_SAVE_PATH', '~/.local/share/extract-me-honey-deluxe/save.json'))
+WEB_MODE = Ruby2D.web?
+DEMO_MODE = WEB_MODE ? File.file?('/honey-demo') : ARGV.include?('--demo')
+SMOKE_MODE = !WEB_MODE && ARGV.include?('--smoke')
+SAVE_PATH = WEB_MODE ? '/save.json' : File.expand_path(ENV.fetch('HONEY_SAVE_PATH', '~/.local/share/extract-me-honey-deluxe/save.json'))
 MAX_PERK_LEVEL = 20
 CLICK_PASSIVE_SHARE = 0.25
 GLOVES_PASSIVE_SHARE = 0.05
@@ -200,8 +204,8 @@ end
 def load_game
   return default_state unless File.file?(SAVE_PATH)
 
-  sanitize_state(JSON.parse(File.read(SAVE_PATH)))
-rescue JSON::ParserError, SystemCallError => error
+  sanitize_state(HoneyRuntime.parse_save(File.read(SAVE_PATH)))
+rescue HoneyRuntime::ParseError, SystemCallError => error
   warn "Save ignorado: #{error.message}"
   default_state
 end
@@ -287,14 +291,10 @@ add_honey!(state, offline_honey)
 save_game = lambda do
   next if DEMO_MODE || SMOKE_MODE
 
-  FileUtils.mkdir_p(File.dirname(SAVE_PATH))
-  temp = "#{SAVE_PATH}.tmp.#{$$}"
   payload = state.merge('saved_at' => Time.now.to_f)
-  File.write(temp, JSON.pretty_generate(payload))
-  File.rename(temp, SAVE_PATH)
+  HoneyRuntime.write_save(SAVE_PATH, payload)
 rescue SystemCallError => error
   warn "Nao foi possivel salvar: #{error.message}"
-  File.delete(temp) if defined?(temp) && temp && File.file?(temp)
 end
 
 # -------------------------------
@@ -346,7 +346,7 @@ keeper_name = HoneyArt.text('Bento', 454, 527, 22, '#fffad9', z: 24, bold: true)
 keeper_sign = HoneyArt.text('Bento cuida daqui', 545, 489, 18, '#fff5d7', z: 14, bold: true, max_width: 117)
 
 move_keeper_sprite = lambda do
-  bob = Math.sin(Process.clock_gettime(Process::CLOCK_MONOTONIC) * 9) * 1.4
+  bob = Math.sin(HoneyRuntime.monotonic_time * 9) * 1.4
   keeper_shadow.x, keeper_shadow.y = keeper[:x], keeper[:y] + 46
   keeper_sprite.x, keeper_sprite.y = keeper[:x] - 35, keeper[:y] - 56 + bob
   keeper_sprite.flip = keeper[:dir].positive? ? :horizontal : nil
@@ -675,6 +675,9 @@ on :mouse_down do |event|
   if event.x.between?(0, FIELD_RIGHT - 1) && event.y.between?(TOP_HUD, HEIGHT)
     perform_field_click.call(event.x, event.y)
   end
+ensure
+  # Browser tabs do not reliably emit a close event; persist player actions now.
+  save_game.call if WEB_MODE
 end
 
 on :close do
@@ -685,7 +688,7 @@ end
 # Update loop
 # -------------------------------
 
-last_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+last_time = HoneyRuntime.monotonic_time
 last_save = last_time
 if SMOKE_MODE
   require_relative 'test/smoke'
@@ -693,8 +696,16 @@ if SMOKE_MODE
 end
 
 update do
-  now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  now = HoneyRuntime.monotonic_time
   elapsed = clamp(now - last_time, 0.0, OFFLINE_CAP)
+  # Browsers suspend animation in background tabs. Resume with normal offline
+  # production, without catching up hours of automatic clicks in a single frame.
+  if WEB_MODE && elapsed > 1.0
+    add_honey!(state, base_hps(state) * elapsed)
+    rush = 0.0
+    auto_clicker.reset
+    elapsed = 0.0
+  end
   dt = clamp(elapsed, 0.0, 0.05)
   last_time = now
 

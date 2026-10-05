@@ -3,7 +3,7 @@
 # All artwork is project-local. Sprites share one texture; the PNG is never
 # sliced or rewritten at runtime. Coordinates use the reference's 1672x941 canvas.
 module HoneyArt
-  ROOT = File.expand_path('../assets', __dir__)
+  ROOT = Ruby2D.web? ? '/assets' : File.expand_path('../assets', __dir__)
   FONT = File.join(ROOT, 'fonts/DroidSans.ttf')
   HEADING = File.join(ROOT, 'fonts/LiberationSansNarrow-Bold.ttf')
   ICONS = {

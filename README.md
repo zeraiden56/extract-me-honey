@@ -2,6 +2,45 @@
 
 Jogo incremental em Ruby2D com cenário e sprites ilustrados a partir de `image.png`.
 
+**No navegador / GitHub Pages**
+
+A versão web compila o mesmo jogo Ruby para WebAssembly com Ruby2D 1.0 e Emscripten.
+O GitHub Pages publica os arquivos compilados; enviar apenas `main.rb` não executa o jogo no navegador.
+
+Para publicar em <https://zeraiden56.github.io/extract-me-honey/>:
+
+1. Envie estes arquivos para a branch `main` (ou `master`) do repositório `extract-me-honey`, incluindo `.github/workflows/pages.yml`, `scripts/`, `web/`, `lib/` e `assets/`.
+2. No GitHub, abra **Settings → Pages → Build and deployment → Source → GitHub Actions**.
+3. Na aba **Actions**, acompanhe **Publicar jogo no GitHub Pages**. Se necessário, use **Run workflow**. Ao concluir, abra o endereço acima.
+
+O workflow instala as ferramentas, testa o jogo, compila e publica somente `build/web/`.
+Novos pushes em `main` ou `master` atualizam a versão publicada. A primeira compilação leva alguns minutos.
+O botão **Tela cheia** amplia o campo; em celulares, prefira jogar na horizontal.
+
+O save web fica no armazenamento local do navegador, separado do save desktop e de outros dispositivos.
+Compras e cliques são salvos imediatamente; a produção é salva a cada oito segundos.
+Ao voltar ao jogo ou a uma aba suspensa, os ganhos offline usam produção normal, limitados a oito horas.
+**Baixar save** exporta o progresso em JSON. Limpar os dados do site apaga o save local.
+Para experimentar sem alterar seu progresso, abra o endereço com `?demo=1`.
+
+Para compilar e testar localmente, instale o [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html), ative a versão `6.0.11` e carregue `emsdk_env.sh`. Com as gems instaladas:
+
+```bash
+# No Linux, rode uma vez para preparar SDL3 e o compilador mruby:
+bundle exec ruby2d setup
+
+bundle exec ruby scripts/build_web.rb
+python3 -m http.server 8080 --directory build/web
+```
+
+Abra <http://localhost:8080/>. Use um servidor HTTP; abrir o HTML por `file://` não funciona.
+O script reúne os arquivos Ruby locais e inclui as artes, gerando `index.html`, `app.js`, `app.wasm` e `app.data` em `build/web/`.
+`build/` e `tmp/` são saídas temporárias e não precisam ser enviadas ao GitHub.
+
+Referências: [compilação web do Ruby2D](https://www.ruby2d.com/learn/building/) e [publicação por GitHub Actions](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+
+**No desktop**
+
 ```bash
 ruby main.rb
 ```

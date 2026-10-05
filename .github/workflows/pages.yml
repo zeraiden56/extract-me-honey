@@ -1,0 +1,64 @@
+name: Publicar jogo no GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Dependências de compilação
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config libgl1-mesa-dev libegl1-mesa-dev libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libxinerama-dev libxkbcommon-dev libwayland-dev libasound2-dev libpulse-dev libudev-dev
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ruby2d
+          key: ruby2d-linux-${{ runner.arch }}-${{ hashFiles('Gemfile.lock') }}
+      - name: Preparar Ruby2D e mruby
+        run: |
+          bundle exec ruby2d setup --yes
+          bundle pristine ruby2d
+      - name: Testar o jogo
+        run: SDL_AUDIODRIVER=dummy SDL_VIDEODRIVER=offscreen bundle exec ruby main.rb --smoke
+      - name: Instalar Emscripten
+        run: |
+          git clone --depth 1 --branch 6.0.11 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install 6.0.11
+          "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.11
+      - name: Compilar o jogo para WebAssembly
+        run: |
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          bundle exec ruby scripts/build_web.rb
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
