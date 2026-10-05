@@ -41,18 +41,49 @@ Referências: [compilação web do Ruby2D](https://www.ruby2d.com/learn/building
 
 **No desktop**
 
+Requer **Ruby 4.0 ou superior** e Ruby2D 1.0. Ruby 3.4 não é compatível.
+As dependências estão no `Gemfile`. Dentro da pasta do projeto:
+
 ```bash
-ruby main.rb
+bundle config set --local path vendor/bundle
+bundle install
+bundle exec ruby main.rb
 ```
 
-Requer Ruby e Ruby2D 1.0. As dependências estão no `Gemfile` (`bundle install`).
+No **Arch Linux**, instale as bibliotecas e ferramentas de compilação:
+
+```bash
+sudo pacman -Syu --needed base-devel git openssl libyaml readline zlib gmp libffi sdl3 sdl3_image sdl3_mixer sdl3_ttf
+```
+
+Se `ruby -v` mostrar uma versão inferior a 4.0 (ou o comando não existir),
+instale o Ruby do projeto com [rbenv](https://github.com/rbenv/rbenv#installation).
+Para uma instalação nova do rbenv:
+
+```bash
+git clone https://github.com/rbenv/rbenv.git ~/.rbenv
+git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build
+~/.rbenv/bin/rbenv init
+```
+
+Abra outro terminal, entre na pasta do projeto e execute:
+
+```bash
+rbenv install -s "$(cat .ruby-version)"
+gem install bundler -v 4.0.20 --no-document
+bundle config set --local path vendor/bundle
+bundle install
+bundle exec ruby main.rb
+```
+
+O arquivo `.ruby-version` seleciona o Ruby deste projeto automaticamente com rbenv.
 O cenário, as fontes e todos os sprites ficam em `assets/`; mantenha essa pasta junto do código.
 O jogo pode ser iniciado de outro diretório, usando o caminho completo de `main.rb`.
 
 Para ver o apiário com doze colmeias e melhorias de exemplo:
 
 ```bash
-ruby main.rb --demo
+bundle exec ruby main.rb --demo
 ```
 
 A demonstração é jogável e temporária: não lê nem altera seu progresso salvo.
@@ -77,7 +108,7 @@ O save continua em `~/.local/share/extract-me-honey-deluxe/save.json`, com salva
 Teste de integração sem abrir uma janela ou alterar o save:
 
 ```bash
-SDL_AUDIODRIVER=dummy SDL_VIDEODRIVER=offscreen ruby main.rb --smoke
+SDL_AUDIODRIVER=dummy SDL_VIDEODRIVER=offscreen bundle exec ruby main.rb --smoke
 ```
 
 O teste verifica renderização, compras e saves acima de 12 colmeias, agrupamento visual, cliques proporcionais à produção e ao ritmo, luvas, abas, árvore de melhorias, renascimento, redimensionamento, aumento do teto de ritmo, cadência e alvos da AbelhIA e compatibilidade dos perks com saves antigos. As capturas ficam em `tmp/smoke/`.
